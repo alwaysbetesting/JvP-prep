@@ -42,4 +42,103 @@ Remote Management will prevent them from being used with plug-ins.
 WN10-AU-000500: The application event log size must be configured to 32768 KB or greater. 
 Log size can fill up quickly. This may prevent audit events from being recorded properly and require frequent attn by admins. 
 
-WN10-AU-000505: 
+WN10-AU-000505: The security event log size limt must be configured to 1024000 KB or greater 
+Log size can fill up quickly. This may prevent audit events from being recorded properly and 
+require frequent attn by admins. 
+
+WN10-AU-000510: The system even log size must be configured to 32768 KB or greater. 
+Log size can fill up quickly. They may prevent audit events from being recorded properly and 
+require attn by admins. 
+
+WN10-CC-000005: Camera access from the lock screen must be disabled. 
+Enabling camer access from the lock screen could allow for unauthorized use. Require login to ensure 
+the deivce is only used by authorized people. 
+
+WN10-CC-000010: The display of slide shows on the lock screen must be disabled. 
+Slids shows that are displayed on the lock screen could display sensitive information to unauthorized 
+people. Turning this feature off will limit access to the information to a logged on user. 
+
+WN10-CC-000020: IPv6 source routing must be configured to highest protection. 
+Configuring the system to disable IPv6 source routing protects against spoofing. 
+
+WN10-CC-000025: The system must be configured to prevent IP source routing. 
+Confing the system to disable IP source routing protects against spoofing. 
+
+WN10-CC-000030: The system must be configured to prevent ICMP redirects from overriding Open Shortest
+Path First generated routes. 
+Allowing ICMP redirects of routes can lead to traffic not being routed properly. When disbaled this 
+forces ICMP to be routed cia shortes path first. 
+
+WN10-CC-000035: The system must be configured to ignore NetBIOS name release requests except from WINS 
+servers. 
+Config the system to ignore name release requests except form WINS servers, prevents DoS attacks. 
+
+WN10-CC-000040: Indirect logons to an SMB server must be disabled. 
+Insecure guest logons allow unauthenticated access to shared folders. Shared resources on a system must 
+require authentication to establish access. 
+
+WN10-CC-000050: Hardened UNC Paths must be defined to require mutual authentication and integrity for 
+at least the \\*SYSVOL and \\*NETLOGON shares. [reference: https://social.technet.microsoft.com/wiki/contents/articles/8548.active-directory-sysvol-and-netlogon.aspx]
+
+WN10-CC-000055: Simultaneous connectoins to the internet or a windows domain must be limited. 
+Multiple network connections can provide additional attack vectors to a system and must be limited. 
+This setting prevents systems from automatically establishing multiple connections. When both wired and 
+wireless connections are available for example the less preddered connection (typically wireless) will 
+be disconnected. 
+
+WN10-CC-000060: Connections to non-domain networks when connected to a domain authenticated network 
+must be blocked. 
+Multiple network connections can provide additional attack vectors to a system and should be limited
+When connected to a domain communications must go through the domain connection. 
+
+WN10-CC-000065: Wifi sense must be disabled 
+Wifi sense automatically connects the system to known hotspots and networks that contacts have shared. 
+it allows the sharing of systems known networks to contacts. Auto connecting to hotspots and shared 
+networks can expose a system to unsecured or potentially mal systems. 
+
+WN10-CC-000037: Local admin accounts must have their privliaged token filtered to prevent elevated privliagesfrom being 
+used over the network on domain systems. 
+a compromised local admin account can provide means for an attacker to move latterly between 
+domain systems. With the User Account Control enabled filtering the privliaged token for built-in admin
+accounts will prevent the elevated privliages of these accounts from being used over the network 
+
+WN10-CC-000085: Early launch antimalware, boot-start driver init policy must prevent boot drivers ID'ed as bad. 
+Compromised boot drivers can introduce malware prior to protection mechanisms that load after init. The early launch 
+antimalware driver can limit allowed drivers based on classifications determined by the malware protection application. 
+At a minimum drivers determined to be bad must not be allowed. 
+
+WN10-CC-000090: Group policy objects must be reprocessed even if they have not changed. 
+Enabling this steeing and then selecting the "process even if the group policy objects have not changed" option ensures
+that the policies will be reprocessed even if none have been changed. This way any unauthorized changes are forced to match the 
+domain-based group policy settings again. 
+
+WN10-CC-000100: Downloading print driver packages over HTTP must be prevented. 
+Some features may communicate with the vendor sending system info or downloading data or components for the feature. 
+Turning off this capibility will prevent potentially sensitive information from being sent outside the enterprise and uncontrolled 
+updates to the system. 
+This setting prevernts the computer from downloading print driver packages over HTTP
+
+WN10-CC-000015: Automatic logins must be disabled 
+Allowing systems to auto login when the machine is booted could give access to any unauthorized user who restarts the computer 
+auto login with admin privliages would give full access to an unauthorized user. 
+
+WN10-CC-000105: Web publishing and online ordereing wizards must be prevented from downloading a list of providers. 
+Some features may communicate with the vendown sending system info or downloading data or components for the feature. Turing off the 
+capalbility will prevent potentially sensitive information from being sent outside the org. 
+
+WN10-CC-000110: Printing over HTTP must be prevented. 
+Some features may communicate with the vendor sending system information or downloading data or components of a feature. 
+This setting prevents the client computer from printing over HTTP which allows the computer to print to printers or to printers over the 
+internet. 
+
+WN10-CC-000115: Systems must at least attempt device authentication using certs 
+Using certs to authenticate devices to the domain provides increased security over passwords. By default systems will attempt to authenticate 
+using certs and fall back to passwords if the domain controller does not support certs for devices. 
+This may also be configured to always use the certificates for device auth. 
+
+WN10-CC-000120: Network selection UI must not be displayed on the logon screen 
+
+WN10-CC-000130: Local users on domain joined computers must not be enumerated. 
+The username is one part of login creds. Preventing the enum of users limits leaking this info. 
+
+WN10-SO-000030: <<<< start here tomorrow
