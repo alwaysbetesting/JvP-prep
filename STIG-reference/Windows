@@ -1,0 +1,45 @@
+This is a reference for the STIG Findings:ID noted in the Win10 hardening scripts
+
+WN10-00-000010: Domain-joined systems must have a Trusted Platform Module (TPM) enabled and ready for use. 
+This is one of the pre-reqs for 'credential guard' to be enabled properly. 
+Credential Guard uses virtualization based security to protect secrets that could be used for credential theft. 
+
+WN10-CC-000315: The windows installer ALWAYS install with elevated privliages must be disabled. 
+Standard users accounts must not be granted elevated priv. Enable windows installer to elevate priv when installing 
+applicaitons can allow for malicious persons and applications to gain full control of a system. 
+
+WN10-CC-000320: Users must be notified if a web-based program attempts to install software. 
+Web-based programs may attempt to install malicious software on a system. Ensuring that users are notified if a web-based program 
+attempts to install software allows them to refuse the install 
+
+WN10-CC-000325: Automatically signing in the last interactive user after a system-init restart must be disabled
+Windows can be configured to automatically sign the user back in after a Windows Update restart. Some protections are in place to help
+ensure this is done in a secure fasion; however disabling this will prevent 
+the caching of credentials for this purpose and also ensure the user is aware of the restart. 
+
+WN10-CC-000330: The windows remote management client must not use basic auth. 
+Basic auth uses plain text passwords that could be used to compromise a system
+
+WN10-CC-000335: The windows remote managament client must not allow uncenrypted traffic. 
+Unencrypted remote access to a system can allow sensitive info to be compromised. Windows remote management connections 
+must be encrypted to prevent this. 
+
+WN10-CC-000340: OneDrive must only allow sync of accounts for DoD org instances. 
+OneDrive provides access to external services for data storage which must be restricted to authorized instances if enabled. 
+COnfiguring this will restrict sync of OneDrive accounts to DoD org instances. 
+
+WN10-CC-000345: The windows remote management service must not use basic auth. 
+Basic authentication uses plain text passwords that could be used to compromise a system. 
+
+WN10-CC-000350: The windows remote management service must not allow unencrypted traffic. 
+Unencrypted remote access to a system can allow sensitive information to be compromised. Windows remote management 
+connections must be encrypted. 
+
+WN10-CC-000355: The windows remote management service must not store RunAs credentials. 
+Storage of administration credentials could allow unauthorized users access. Disallow the storage of RunAs credentials for Windows 
+Remote Management will prevent them from being used with plug-ins. 
+
+WN10-AU-000500: The application event log size must be configured to 32768 KB or greater. 
+Log size can fill up quickly. This may prevent audit events from being recorded properly and require frequent attn by admins. 
+
+WN10-AU-000505: 
