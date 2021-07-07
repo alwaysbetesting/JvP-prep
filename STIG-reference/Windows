@@ -141,4 +141,26 @@ WN10-CC-000120: Network selection UI must not be displayed on the logon screen
 WN10-CC-000130: Local users on domain joined computers must not be enumerated. 
 The username is one part of login creds. Preventing the enum of users limits leaking this info. 
 
-WN10-SO-000030: <<<< start here tomorrow
+WN10-SO-000030: Audit policy using subcategories must be enabled. 
+Maintaining an audit trail of system activity logs can be helpful in Id'ing config errors, and troubleshooting services, and
+detecting attacks. 
+Audit logs are required for analyzing the security information of assets and detecting sings of sus / unexpected behavior. 
+
+WN10-SO-000035: Outgoing secure channel traffic must be encrypted or signed. 
+Requests sent on the secure channel are authenticated and sensitive info is encrypted (passwords for example), but NOT ALL info 
+is encrypted. If enabled outgoing secure channel traffic will be encrypted and signed. 
+
+WN10-SO-000040: Outgoing secure channel traffic must be encrypted when possible. 
+Requests sent on the secure channel are authenticated and sensitive info (again passwords for example) is encrypted. NOT ALL info is 
+encrypted. If enabled outgoing secure channel traffic will be encrypted. 
+
+WN10-SO-000045: Outgoing secure channel traffic must be signed when possible. 
+(as above)...If enabled outgoing secure channel traffic will be signed. 
+
+WN10-CC-000145: Users must be prompted for a password on resumre from sleet (on battery)
+
+WN10-CC-000150: Users must be prompted for a password on resumre from sleet (plugged in)
+
+WN10-CC-000155: Solicited Remote Assistance must not be allowed. 
+Remote assistance allows users to view/take control of the local session of a user. This is help that is requested by the local user. 
+This may allow unauthorized users access to the resources on the computer. 
