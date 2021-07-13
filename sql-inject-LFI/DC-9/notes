@@ -1,0 +1,21 @@
+1. nmap scan of the box: 
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.4.38 ((Debian))
+|_http-server-header: Apache/2.4.38 (Debian)
+|_http-title: Example.com - Staff Details - Welcome
+
+only seeing 80 is open
+
+2. checking out the example site. 
+Standard example site, and search seems to be the most interesting page. 
+
+3. run a gobuster against the site. 
+gobuster dir -u http://10.0.2.4 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php -o gobuster-main.out
+
+dir == setting gobuster to use directory mode 
+-x == add extension (php in this example because the site is showing it)
+-o == output results to a file 
+
+Results in gobuster-main.out
+
+4. Send requests to burp
