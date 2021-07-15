@@ -1,0 +1,40 @@
+1. namp the box
+┌──(kali㉿kali)-[~/CTF/JvP-prep/joomla/curling]
+└─$ nmap -sC -sV -oA nmap/curling 10.10.10.150         
+-sC == run default scripts 
+-sV == enumerate version info
+-oA == output results in all formats
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 8a:d1:69:b4:90:20:3e:a7:b6:54:01:eb:68:30:3a:ca (RSA)
+|   256 9f:0b:c2:b2:0b:ad:8f:a1:4e:0b:f6:33:79:ef:fb:43 (ECDSA)
+|_  256 c1:2a:35:44:30:0c:5b:56:6a:3f:a5:cc:64:66:d9:a9 (ED25519)
+80/tcp open  http    Apache httpd 2.4.29 ((Ubuntu))
+|_http-generator: Joomla! - Open Source Content Management
+|_http-server-header: Apache/2.4.29 (Ubuntu)
+|_http-title: Home
+
+2. Checking out the Joomla site
+- The main page is titled "Cewl Curling site!" 
+- Cewl is a tool that can be used to generate wordlists based on all the words on a page 
+so I am going to run it against the site. 
+
+3. Looking at page source 
+- At the bottom of the page is a comment stating  <!-- secret.txt -->
+going to /secret.txt shows Q3VybGluZzIwMTgh [putting that in a creds file]
+
+4. Run Joomscan against the site 
+joomscan --url http://10.10.10.150 -ec | tee joomla-scan.out        
+
+--url == target 
+-ec == enumerate components
+
+results in joomla-scan.out
+
+Getting joomla version via http://10.10.10.150/administrator/manifests/files/joomla.xml 
+Version is 3.8.8
+Searching for "Joomla Changelog 3.8.8" shows a date of May 22, 2018
+Searching for "Joomla core Vulnerabilites" returns this list of CVEs 
+https://www.cvedetails.com/vulnerability-list/vendor_id-3496/Joomla.html
